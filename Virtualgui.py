@@ -20,6 +20,11 @@ from datetime import datetime
 import requests
 import wikipedia
 import pyttsx3
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    pass
 import psutil
 import spotipy
 from spotipy.oauth2 import SpotifyOAuth
@@ -66,15 +71,15 @@ except ImportError:
     PYAUTOGUI_AVAILABLE = False
 
 # ── Config ────────────────────────────────────────────────────────────────────
-WEATHER_API_KEY       = '0c42f7f6b53b244c78a418f4f181282a'
+WEATHER_API_KEY       = os.getenv('WEATHER_API_KEY', '')
 DEFAULT_CITY          = 'Ludhiana'
 MUSIC_DIR             = r'D:\Top 20 Kuldeep Manak'
 
-SPOTIFY_CLIENT_ID     = '5f7c91c258b34db7adcfe7cc784378c8'
-SPOTIFY_CLIENT_SECRET = 'c398f9f6ff674178becda6cd4ffbf8b0'
+SPOTIFY_CLIENT_ID     = os.getenv('SPOTIFY_CLIENT_ID', '')
+SPOTIFY_CLIENT_SECRET = os.getenv('SPOTIFY_CLIENT_SECRET', '')
 SPOTIFY_REDIRECT_URI  = 'http://127.0.0.1:8888/callback'
 
-ANTHROPIC_API_KEY     = 'sk-ant-...'   # paste your key from console.anthropic.com
+ANTHROPIC_API_KEY     = os.getenv('ANTHROPIC_API_KEY', '')
 
 # ── Autocomplete commands ─────────────────────────────────────────────────────
 COMMANDS = [
