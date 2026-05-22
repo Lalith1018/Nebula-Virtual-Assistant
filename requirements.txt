@@ -1,3 +1,14 @@
 pyttsx3
 wikipedia
 requests
+spotipy
+PyQt5
+SpeechRecognition
+pyaudio
+anthropic
+psutil
+pycaw
+comtypes
+screen-brightness-control
+pyperclip
+pyautogui
