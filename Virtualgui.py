@@ -96,7 +96,6 @@ except ImportError:
     PYAUTOGUI_AVAILABLE = False
 
 # ── Config ────────────────────────────────────────────────────────────────────
-WEATHER_API_KEY       = os.getenv('WEATHER_API_KEY', '')
 DEFAULT_CITY          = 'Ludhiana'
 MUSIC_DIR             = r'D:\Top 20 Kuldeep Manak'
 
@@ -155,6 +154,9 @@ COMMANDS = [
     'lock screen', 'lock', 'sleep', 'restart', 'reboot', 'log off',
     # n8n workflows
     'n8n ', 'list n8n workflows',
+    # Vision
+    "what's on my screen", 'analyze my screen', 'read my screen',
+    'describe my screen', 'what do you see on my screen',
     # Misc
     'take a screenshot', 'where am i',
     'clear chat', 'clear history', 'new conversation',
@@ -383,6 +385,57 @@ class AIWorker(QThread):
             self.error.emit('__no_anthropic__')
         except Exception as e:
             self.error.emit(f'AI error: {e}')
+# ─────────────────────────────────────────────────────────────────────────────
+
+
+# ── Vision worker — captures screen and sends to Claude vision API ────────────
+class VisionWorker(QThread):
+    result = pyqtSignal(str)
+    error  = pyqtSignal(str)
+
+    def __init__(self, question, parent=None):
+        super().__init__(parent)
+        self.question = question
+
+    def run(self):
+        try:
+            import anthropic
+            import base64
+            import io
+            import pyautogui
+
+            screenshot = pyautogui.screenshot()
+            buf = io.BytesIO()
+            screenshot.save(buf, format='PNG')
+            b64 = base64.standard_b64encode(buf.getvalue()).decode('utf-8')
+
+            client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
+            msg = client.messages.create(
+                model='claude-haiku-4-5-20251001',
+                max_tokens=500,
+                messages=[{
+                    'role': 'user',
+                    'content': [
+                        {
+                            'type': 'image',
+                            'source': {
+                                'type': 'base64',
+                                'media_type': 'image/png',
+                                'data': b64,
+                            },
+                        },
+                        {'type': 'text', 'text': self.question},
+                    ],
+                }],
+            )
+            self.result.emit(msg.content[0].text)
+        except ImportError as e:
+            if 'pyautogui' in str(e).lower():
+                self.error.emit('__no_pyautogui__')
+            else:
+                self.error.emit('__no_anthropic__')
+        except Exception as e:
+            self.error.emit(f'Vision error: {e}')
 # ─────────────────────────────────────────────────────────────────────────────
 
 
@@ -625,6 +678,7 @@ class NebulaWindow(QMainWindow):
         self._sidebar_visible = True
         self._voice_worker    = None
         self._ai_worker       = None
+        self._vision_worker   = None
         self._n8n_worker      = None
         self._chat_history    = []   # multi-turn AI memory
         self._timers          = {}   # id -> {'label': str, 'qtimer': QTimer}
@@ -1587,6 +1641,15 @@ class NebulaWindow(QMainWindow):
             except Exception:
                 os.system('start ms-screenclip:')
 
+        # ── Screen vision / analysis ────────────────────────────────────────────
+        elif any(p in ui for p in (
+            "what's on my screen", "whats on my screen",
+            'analyze my screen', 'analyse my screen',
+            'read my screen', 'describe my screen',
+            'what do you see on my screen', 'what is on my screen',
+        )):
+            self._handle_vision(ui)
+
         # ── Clipboard ──────────────────────────────────────────────────────────
         elif any(w in ui for w in ('clipboard', "what's copied", "what is copied")) or \
              (ui.startswith('copy ') and len(ui) > 5):
@@ -1717,6 +1780,54 @@ class NebulaWindow(QMainWindow):
                     self._respond("Sorry, I couldn't open that.")
                 return
         self._respond(random.choice(self.confused))
+
+    # ── Screen vision ─────────────────────────────────────────────────────────
+    def _handle_vision(self, ui):
+        if not ANTHROPIC_API_KEY or ANTHROPIC_API_KEY == 'sk-ant-...':
+            self.typing_indicator.stop()
+            self._respond("Screen analysis needs an Anthropic API key. Add it in settings.")
+            return
+        if not PYAUTOGUI_AVAILABLE:
+            self.typing_indicator.stop()
+            self._respond("Screen capture requires pyautogui. Run: pip install pyautogui")
+            return
+        if self._vision_worker and self._vision_worker.isRunning():
+            return
+
+        # Strip the trigger phrase; any remainder becomes the specific question
+        triggers = (
+            "what's on my screen", "whats on my screen",
+            'analyze my screen', 'analyse my screen',
+            'read my screen', 'describe my screen',
+            'what do you see on my screen', 'what is on my screen',
+        )
+        question = ui
+        for t in sorted(triggers, key=len, reverse=True):
+            if ui.startswith(t):
+                question = ui[len(t):].strip(' ,?')
+                break
+        if not question:
+            question = 'Describe what is visible on this screen in 2-3 concise sentences.'
+
+        self._respond("Capturing screen and analyzing…")
+        self.set_status('Analyzing screen…')
+        self._vision_worker = VisionWorker(question)
+        self._vision_worker.result.connect(self._on_vision_result)
+        self._vision_worker.error.connect(self._on_vision_error)
+        self._vision_worker.start()
+
+    def _on_vision_result(self, text):
+        self._respond(text)
+
+    def _on_vision_error(self, err):
+        self.typing_indicator.stop()
+        self.set_status()
+        if err == '__no_anthropic__':
+            self._respond("Vision needs the anthropic library. Run: pip install anthropic")
+        elif err == '__no_pyautogui__':
+            self._respond("Screen capture needs pyautogui. Run: pip install pyautogui")
+        else:
+            self._respond(err)
 
     # ── AI response ───────────────────────────────────────────────────────────
     def _handle_ai(self, ui):
