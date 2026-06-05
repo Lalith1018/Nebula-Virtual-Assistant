@@ -5,7 +5,7 @@ a = Analysis(
     ['Virtualgui.py'],
     pathex=[],
     binaries=[],
-    datas=[],
+    datas=[('.env', '.')],
     hiddenimports=['pyttsx3.drivers', 'pyttsx3.drivers.sapi5'],
     hookspath=[],
     hooksconfig={},

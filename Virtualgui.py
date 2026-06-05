@@ -22,7 +22,9 @@ import wikipedia
 import pyttsx3
 try:
     from dotenv import load_dotenv
-    load_dotenv()
+    import sys as _sys
+    _base = getattr(_sys, '_MEIPASS', os.path.dirname(os.path.abspath(__file__)))
+    load_dotenv(os.path.join(_base, '.env'))
 except ImportError:
     pass
 import psutil
