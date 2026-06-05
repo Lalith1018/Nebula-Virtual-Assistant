@@ -81,6 +81,9 @@ SPOTIFY_REDIRECT_URI  = 'http://127.0.0.1:8888/callback'
 
 ANTHROPIC_API_KEY     = os.getenv('ANTHROPIC_API_KEY', '')
 
+# n8n webhook base URL — paths append to this (e.g. n8n_base + 'my-workflow')
+N8N_BASE_URL          = os.getenv('N8N_BASE_URL', 'http://localhost:5678/webhook/')
+
 # ── Autocomplete commands ─────────────────────────────────────────────────────
 COMMANDS = [
     'hello', 'hi', 'hey', 'howdy',
@@ -125,6 +128,8 @@ COMMANDS = [
     'my ip', 'wifi info', 'network info', 'internet connection',
     # Power
     'lock screen', 'lock', 'sleep', 'restart', 'reboot', 'log off',
+    # n8n workflows
+    'n8n ', 'list n8n workflows',
     # Misc
     'take a screenshot', 'where am i',
     'clear chat', 'clear history', 'new conversation',
@@ -132,162 +137,166 @@ COMMANDS = [
     'shutdown', 'exit', 'goodbye', 'bye', 'help', 'about you',
 ]
 
-# ── Stylesheet — Retro Terminal ───────────────────────────────────────────────
+# ── Stylesheet — Modern Dark ──────────────────────────────────────────────────
 QSS = """
 QMainWindow, QWidget {
-    background-color: #0c0c0c;
-    color: #ccffcc;
-    font-family: 'Consolas';
+    background-color: #0d0d17;
+    color: #cdd6f4;
+    font-family: 'Segoe UI';
 }
 QTextEdit {
-    background-color: #060606;
-    color: #ccffcc;
+    background-color: #0d0d17;
+    color: #cdd6f4;
     border: none;
     font-size: 10pt;
     font-family: 'Consolas';
-    padding: 10px 12px;
-    selection-background-color: #1a4a1a;
-    selection-color: #00ff41;
+    padding: 16px 18px;
+    selection-background-color: #313244;
+    selection-color: #cdd6f4;
 }
 QScrollBar:vertical {
-    background: #060606;
+    background: #0d0d17;
     width: 6px;
-    border-radius: 0;
+    border-radius: 3px;
     margin: 0;
 }
 QScrollBar::handle:vertical {
-    background: #1a3a1a;
-    min-height: 20px;
+    background: #313244;
+    min-height: 24px;
+    border-radius: 3px;
 }
 QScrollBar::add-line:vertical,
 QScrollBar::sub-line:vertical { height: 0; }
 QLineEdit {
-    background-color: #060606;
-    color: #00ff41;
-    border: 1px solid #1a3a1a;
-    border-radius: 0;
-    padding: 9px 14px;
-    font-size: 11pt;
-    font-family: 'Consolas';
-    selection-background-color: #1a4a1a;
-    selection-color: #00ff41;
-}
-QLineEdit:focus { border: 1px solid #00ff41; }
-QPushButton#sendBtn {
-    background-color: #001500;
-    color: #00ff41;
-    border: 1px solid #00aa33;
-    border-radius: 0;
-    padding: 9px 20px;
+    background-color: #1a1a2e;
+    color: #cdd6f4;
+    border: 1px solid #313244;
+    border-radius: 22px;
+    padding: 10px 18px;
     font-size: 10pt;
-    font-family: 'Consolas';
-    font-weight: bold;
-    letter-spacing: 1px;
+    font-family: 'Segoe UI';
+    selection-background-color: #313244;
+    selection-color: #cdd6f4;
 }
-QPushButton#sendBtn:hover   { background-color: #002800; border-color: #00ff41; }
-QPushButton#sendBtn:pressed { background-color: #00ff41; color: #000000; }
+QLineEdit:focus {
+    border: 1px solid #4ade80;
+    background-color: #1e1e35;
+}
+QPushButton#sendBtn {
+    background-color: #0d1f17;
+    color: #4ade80;
+    border: 1px solid #4ade80;
+    border-radius: 22px;
+    padding: 10px 22px;
+    font-size: 10pt;
+    font-family: 'Segoe UI';
+    font-weight: bold;
+}
+QPushButton#sendBtn:hover   { background-color: #152b1e; }
+QPushButton#sendBtn:pressed { background-color: #4ade80; color: #0d0d17; }
 QPushButton#micBtn {
-    background-color: #0a0a0a;
-    color: #99cc99;
-    border: 1px solid #1a3a1a;
-    border-radius: 0;
-    padding: 9px 12px;
+    background-color: #1a1a2e;
+    color: #89b4fa;
+    border: 1px solid #313244;
+    border-radius: 22px;
+    padding: 10px 13px;
     font-size: 13pt;
 }
-QPushButton#micBtn:hover   { border-color: #00ff41; color: #00ff41; }
+QPushButton#micBtn:hover   { border-color: #89b4fa; background-color: #1e1e35; }
 QPushButton#micListening {
-    background-color: #1a0000;
-    color: #ff4444;
-    border: 1px solid #ff4444;
-    border-radius: 0;
-    padding: 9px 12px;
+    background-color: #2d1522;
+    color: #f38ba8;
+    border: 1px solid #f38ba8;
+    border-radius: 22px;
+    padding: 10px 13px;
     font-size: 13pt;
     font-weight: bold;
 }
 QPushButton#headerBtn {
     background-color: transparent;
-    color: #336633;
-    border: 1px solid transparent;
-    font-family: 'Consolas';
+    color: #6c7086;
+    border: 1px solid #313244;
+    border-radius: 14px;
+    font-family: 'Segoe UI';
     font-size: 9pt;
-    padding: 4px 10px;
-    letter-spacing: 1px;
+    padding: 5px 14px;
 }
-QPushButton#headerBtn:hover { color: #00ff41; border-color: #1a3a1a; }
+QPushButton#headerBtn:hover { color: #cdd6f4; border-color: #585b70; background-color: #1a1a2e; }
 QPushButton#toggleBtn {
     background-color: transparent;
-    color: #336633;
+    color: #6c7086;
     border: none;
-    font-size: 14pt;
+    font-size: 12pt;
     padding: 4px 8px;
-    font-family: 'Consolas';
+    border-radius: 8px;
 }
-QPushButton#toggleBtn:hover { color: #00ff41; }
+QPushButton#toggleBtn:hover { color: #4ade80; background-color: #1a1a2e; }
 QPushButton#quickBtn {
-    background-color: #0a0a0a;
-    color: #99cc99;
-    border: 1px solid #1a2a1a;
-    border-radius: 2px;
-    padding: 6px 10px;
-    font-size: 8pt;
-    font-family: 'Consolas';
+    background-color: #1a1a2e;
+    color: #a6adc8;
+    border: 1px solid #252545;
+    border-radius: 8px;
+    padding: 7px 10px;
+    font-size: 9pt;
+    font-family: 'Segoe UI';
     text-align: left;
-    min-height: 28px;
+    min-height: 30px;
 }
-QPushButton#quickBtn:hover   { background-color: #0f1f0f; border-color: #336633; color: #ccffcc; }
-QPushButton#quickBtn:pressed { background-color: #1a3a1a; color: #00ff41; border-color: #00ff41; }
+QPushButton#quickBtn:hover   { background-color: #252545; border-color: #45475a; color: #cdd6f4; }
+QPushButton#quickBtn:pressed { background-color: #313244; color: #4ade80; }
 QLabel#title {
-    color: #00ff41;
+    color: #4ade80;
     font-size: 14pt;
     font-weight: bold;
-    font-family: 'Consolas';
-    letter-spacing: 4px;
+    font-family: 'Segoe UI';
+    letter-spacing: 2px;
 }
-QLabel#subtitle { color: #336633; font-size: 8pt; font-family: 'Consolas'; letter-spacing: 2px; }
-QLabel#dot      { color: #00ff41; font-size: 14pt; }
-QLabel#status   { color: #336633; font-size: 9pt; font-family: 'Consolas'; padding: 2px 10px; }
-QLabel#sidebarHdr { color: #336633; font-size: 7pt; font-family: 'Consolas'; letter-spacing: 2px; padding: 4px 8px; background: #0a0a0a; }
-QLabel#secInfo    { color: #00aaff; font-size: 7pt; font-family: 'Consolas'; font-weight: bold; letter-spacing: 1px; padding: 8px 4px 3px 4px; }
-QLabel#secMusic   { color: #00ff41; font-size: 7pt; font-family: 'Consolas'; font-weight: bold; letter-spacing: 1px; padding: 8px 4px 3px 4px; }
-QLabel#secApps    { color: #ffaa00; font-size: 7pt; font-family: 'Consolas'; font-weight: bold; letter-spacing: 1px; padding: 8px 4px 3px 4px; }
-QLabel#secSystem  { color: #ff5555; font-size: 7pt; font-family: 'Consolas'; font-weight: bold; letter-spacing: 1px; padding: 8px 4px 3px 4px; }
-QLabel#secCtrl    { color: #cc88ff; font-size: 7pt; font-family: 'Consolas'; font-weight: bold; letter-spacing: 1px; padding: 8px 4px 3px 4px; }
-QLabel#secStats   { color: #ffcc44; font-size: 7pt; font-family: 'Consolas'; font-weight: bold; letter-spacing: 1px; padding: 8px 4px 3px 4px; }
-QLabel#secPower   { color: #ff6644; font-size: 7pt; font-family: 'Consolas'; font-weight: bold; letter-spacing: 1px; padding: 8px 4px 3px 4px; }
-QFrame#divider    { background-color: #1a3a1a; }
-QFrame#sectionDiv { background-color: #141414; min-height: 1px; max-height: 1px; }
+QLabel#subtitle { color: #45475a; font-size: 8pt; font-family: 'Segoe UI'; }
+QLabel#dot      { color: #4ade80; font-size: 14pt; }
+QLabel#status   { color: #45475a; font-size: 8pt; font-family: 'Segoe UI'; padding: 2px 10px; }
+QLabel#sidebarHdr { color: #45475a; font-size: 7pt; font-family: 'Segoe UI'; letter-spacing: 2px; padding: 4px 8px; background: #11111f; }
+QLabel#secInfo    { color: #89b4fa; font-size: 7pt; font-family: 'Segoe UI'; font-weight: bold; letter-spacing: 1px; padding: 6px 4px 2px 4px; }
+QLabel#secMusic   { color: #4ade80; font-size: 7pt; font-family: 'Segoe UI'; font-weight: bold; letter-spacing: 1px; padding: 6px 4px 2px 4px; }
+QLabel#secApps    { color: #f9e2af; font-size: 7pt; font-family: 'Segoe UI'; font-weight: bold; letter-spacing: 1px; padding: 6px 4px 2px 4px; }
+QLabel#secSystem  { color: #f38ba8; font-size: 7pt; font-family: 'Segoe UI'; font-weight: bold; letter-spacing: 1px; padding: 6px 4px 2px 4px; }
+QLabel#secCtrl    { color: #cba6f7; font-size: 7pt; font-family: 'Segoe UI'; font-weight: bold; letter-spacing: 1px; padding: 6px 4px 2px 4px; }
+QLabel#secStats   { color: #fab387; font-size: 7pt; font-family: 'Segoe UI'; font-weight: bold; letter-spacing: 1px; padding: 6px 4px 2px 4px; }
+QLabel#secPower   { color: #f38ba8; font-size: 7pt; font-family: 'Segoe UI'; font-weight: bold; letter-spacing: 1px; padding: 6px 4px 2px 4px; }
+QFrame#divider    { background-color: #252545; }
+QFrame#sectionDiv { background-color: #1a1a2e; min-height: 1px; max-height: 1px; }
 QFrame#sidebar {
-    background-color: #080808;
-    border-right: 1px solid #1a3a1a;
+    background-color: #11111f;
+    border-right: 1px solid #1e1e35;
 }
 QFrame#typingBar {
-    background-color: #060606;
-    border-top: 1px solid #1a3a1a;
+    background-color: #11111f;
+    border-top: 1px solid #1e1e35;
 }
-QScrollArea { background-color: #080808; border: none; }
+QScrollArea { background-color: #11111f; border: none; }
 QScrollBar:vertical {
-    background: #080808;
+    background: #11111f;
     width: 4px;
-    border-radius: 0;
+    border-radius: 2px;
     margin: 0;
 }
 QScrollBar::handle:vertical {
-    background: #1a3a1a;
+    background: #313244;
     min-height: 16px;
+    border-radius: 2px;
 }
 QScrollBar::add-line:vertical,
 QScrollBar::sub-line:vertical { height: 0; }
-QDialog { background-color: #0c0c0c; color: #ccffcc; font-family: 'Consolas'; }
-QMessageBox { background-color: #0c0c0c; color: #ccffcc; font-family: 'Consolas'; }
+QDialog { background-color: #0d0d17; color: #cdd6f4; font-family: 'Segoe UI'; }
+QMessageBox { background-color: #0d0d17; color: #cdd6f4; font-family: 'Segoe UI'; }
 QMessageBox QPushButton {
-    background-color: #001500;
-    color: #00ff41;
-    border: 1px solid #00aa33;
-    border-radius: 0;
+    background-color: #0d1f17;
+    color: #4ade80;
+    border: 1px solid #4ade80;
+    border-radius: 14px;
     padding: 6px 16px;
-    font-family: 'Consolas';
+    font-family: 'Segoe UI';
 }
-QMessageBox QPushButton:hover { background-color: #002800; border-color: #00ff41; }
+QMessageBox QPushButton:hover { background-color: #152b1e; }
 """
 # ─────────────────────────────────────────────────────────────────────────────
 
@@ -352,6 +361,55 @@ class AIWorker(QThread):
 # ─────────────────────────────────────────────────────────────────────────────
 
 
+# ── n8n webhook worker (fires workflow without blocking the UI) ───────────────
+class N8NWorker(QThread):
+    result = pyqtSignal(str)
+    error  = pyqtSignal(str)
+
+    def __init__(self, workflow, payload, parent=None):
+        super().__init__(parent)
+        self.workflow = workflow
+        self.payload  = payload
+
+    def run(self):
+        url = N8N_BASE_URL.rstrip('/') + '/' + self.workflow.lstrip('/')
+        try:
+            r = requests.post(url, json=self.payload, timeout=20)
+            if r.status_code == 404:
+                self.error.emit(
+                    f"Workflow '{self.workflow}' not found at {url}. "
+                    "Check that the webhook node is active in n8n."
+                )
+                return
+            if not r.ok:
+                self.error.emit(f"n8n returned HTTP {r.status_code}: {r.text[:200]}")
+                return
+            # Try to extract a friendly message from common JSON shapes
+            try:
+                data = r.json()
+                if isinstance(data, dict):
+                    for key in ('reply', 'message', 'text', 'output', 'result'):
+                        if key in data and isinstance(data[key], str):
+                            self.result.emit(data[key])
+                            return
+                    self.result.emit(f"n8n responded: {str(data)[:400]}")
+                    return
+                self.result.emit(f"n8n responded: {str(data)[:400]}")
+            except ValueError:
+                body = r.text.strip() or '(empty response)'
+                self.result.emit(f"n8n responded: {body[:400]}")
+        except requests.exceptions.ConnectionError:
+            self.error.emit(
+                f"Couldn't reach n8n at {N8N_BASE_URL}. "
+                "Is it running? (default: http://localhost:5678)"
+            )
+        except requests.exceptions.Timeout:
+            self.error.emit(f"n8n workflow '{self.workflow}' timed out after 20s.")
+        except Exception as e:
+            self.error.emit(f"n8n error: {e}")
+# ─────────────────────────────────────────────────────────────────────────────
+
+
 # ── Typing indicator ──────────────────────────────────────────────────────────
 class TypingIndicator(QFrame):
     def __init__(self, parent=None):
@@ -363,14 +421,14 @@ class TypingIndicator(QFrame):
         layout.setContentsMargins(14, 0, 14, 0)
         layout.setSpacing(5)
 
-        lbl = QLabel('> NEBULA PROCESSING')
-        lbl.setStyleSheet('color: #336633; font-size: 8pt; font-family: Consolas; background: transparent;')
+        lbl = QLabel('▸ NEBULA PROCESSING')
+        lbl.setStyleSheet('color: #45475a; font-size: 8pt; font-family: Segoe UI; background: transparent;')
         layout.addWidget(lbl)
 
         self.dots = []
         for _ in range(3):
-            d = QLabel('█')
-            d.setStyleSheet('color: #1a3a1a; font-size: 9pt; font-family: Consolas; background: transparent;')
+            d = QLabel('●')
+            d.setStyleSheet('color: #252545; font-size: 9pt; font-family: Consolas; background: transparent;')
             layout.addWidget(d)
             self.dots.append(d)
 
@@ -385,7 +443,7 @@ class TypingIndicator(QFrame):
         for i, d in enumerate(self.dots):
             active = (i == self._step % 3)
             d.setStyleSheet(
-                f'color: {"#00ff41" if active else "#1a3a1a"}; '
+                f'color: {"#4ade80" if active else "#252545"}; '
                 'font-size: 9pt; font-family: Consolas; background: transparent;'
             )
         self._step += 1
@@ -414,7 +472,7 @@ class AboutDialog(QDialog):
 
         title = QLabel('Nebula — Virtual Assistant v2.0')
         title.setAlignment(Qt.AlignCenter)
-        title.setStyleSheet('color: #a6e3a1; font-size: 14pt; font-weight: bold;')
+        title.setStyleSheet('color: #4ade80; font-size: 14pt; font-weight: bold; font-family: Segoe UI;')
         layout.addWidget(title)
 
         by = QLabel('by Aditya')
@@ -463,6 +521,7 @@ class NebulaWindow(QMainWindow):
         self._sidebar_visible = True
         self._voice_worker    = None
         self._ai_worker       = None
+        self._n8n_worker      = None
         self._chat_history    = []   # multi-turn AI memory
         self._timers          = {}   # id -> {'label': str, 'qtimer': QTimer}
         self._timer_id        = 0
@@ -593,32 +652,29 @@ class NebulaWindow(QMainWindow):
 
     # ── Chat helpers ──────────────────────────────────────────────────────────
     def add_message(self, sender, text):
-        ts   = datetime.now().strftime('%H:%M:%S')
+        ts   = datetime.now().strftime('%H:%M')
         text = text.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;').replace('\n', '<br>')
 
         if sender == 'You':
             html = (
-                f'<div style="margin:2px 0 2px 0; font-family:Consolas; font-size:10pt; line-height:1.6;">'
-                f'<span style="color:#1a4a1a;">[{ts}]</span>'
-                f'<span style="color:#ffd700; font-weight:bold;"> YOU</span>'
-                f'<span style="color:#1a4a1a;"> ──▶ </span>'
-                f'<span style="color:#e8e8c8;">{text}</span>'
+                f'<div style="margin:4px 2px 4px 110px; background-color:#1a1232; '
+                f'border-radius:12px 3px 12px 12px; padding:10px 14px; border-right:3px solid #a78bfa;">'
+                f'<span style="color:#a78bfa; font-weight:bold; font-size:8pt; font-family:Segoe UI;">YOU</span>'
+                f'<span style="color:#45475a; font-size:8pt; font-family:Segoe UI;"> · {ts}</span><br>'
+                f'<span style="color:#e2e0f0; font-size:10pt; font-family:Consolas;">{text}</span>'
                 f'</div>'
             )
         else:
             html = (
-                f'<div style="margin:2px 0 6px 0; font-family:Consolas; font-size:10pt; line-height:1.6;">'
-                f'<span style="color:#1a4a1a;">[{ts}]</span>'
-                f'<span style="color:#00ff41; font-weight:bold;"> NEBULA</span>'
-                f'<span style="color:#1a4a1a;"> ──▶ </span>'
-                f'<span style="color:#ccffcc;">{text}</span>'
+                f'<div style="margin:4px 110px 4px 2px; background-color:#121e2c; '
+                f'border-radius:3px 12px 12px 12px; padding:10px 14px; border-left:3px solid #4ade80;">'
+                f'<span style="color:#4ade80; font-weight:bold; font-size:8pt; font-family:Segoe UI;">NEBULA</span>'
+                f'<span style="color:#45475a; font-size:8pt; font-family:Segoe UI;"> · {ts}</span><br>'
+                f'<span style="color:#cdd6f4; font-size:10pt; font-family:Consolas;">{text}</span>'
                 f'</div>'
             )
 
-        cursor = self.chat.textCursor()
-        cursor.movePosition(QTextCursor.End)
-        cursor.insertHtml(html)
-        self.chat.setTextCursor(cursor)
+        self.chat.append(html)
         self.chat.verticalScrollBar().setValue(self.chat.verticalScrollBar().maximum())
         self.input_field.setFocus()
 
@@ -651,8 +707,9 @@ class NebulaWindow(QMainWindow):
             return
         self.mic_btn.setObjectName('micListening')
         self.mic_btn.setStyleSheet(
-            'background-color: #f38ba8; color: #11111b; border: none; '
-            'border-radius: 6px; padding: 10px 12px; font-size: 14pt; font-weight: bold;'
+            'background-color: #2d1522; color: #f38ba8; '
+            'border: 1px solid #f38ba8; border-radius: 22px; '
+            'padding: 10px 13px; font-size: 13pt;'
         )
         self.mic_btn.setText('🔴')
         self.set_status('Listening…')
@@ -1222,6 +1279,40 @@ class NebulaWindow(QMainWindow):
         self._respond("Typing in 2 seconds — click your target window!")
         QTimer.singleShot(2000, lambda: pyautogui.typewrite(text, interval=0.04))
 
+    # ── n8n workflow trigger ──────────────────────────────────────────────────
+    def _handle_n8n(self, ui):
+        # Strip the leading "n8n" keyword, keep the rest
+        rest = ui[3:].strip() if ui.startswith('n8n') else ui.strip()
+        if not rest:
+            self._respond(
+                "Usage: n8n <workflow-path> [args]\n"
+                f"Sends a POST to {N8N_BASE_URL}<workflow-path>\n"
+                "Example: n8n send-email hello from nebula"
+            )
+            return
+
+        parts    = rest.split(maxsplit=1)
+        workflow = parts[0]
+        args     = parts[1] if len(parts) > 1 else ''
+
+        if self._n8n_worker and self._n8n_worker.isRunning():
+            self._respond("Already running an n8n workflow — give it a moment.")
+            return
+
+        payload = {
+            'text':      args,
+            'from':      'nebula',
+            'workflow':  workflow,
+            'timestamp': datetime.now().isoformat(),
+        }
+
+        self.set_status(f"Triggering n8n: {workflow}…")
+        self.typing_indicator.start()
+        self._n8n_worker = N8NWorker(workflow, payload)
+        self._n8n_worker.result.connect(self._respond)
+        self._n8n_worker.error.connect(self._respond)
+        self._n8n_worker.start()
+
     # ═════════════════════════════════════════════════════════════════════════
     #  INTENT DISPATCHER
     # ═════════════════════════════════════════════════════════════════════════
@@ -1272,8 +1363,12 @@ class NebulaWindow(QMainWindow):
             self._respond('Let me introduce myself.')
             AboutDialog(self, self.speak).exec_()
 
+        # ── n8n workflow trigger (must come before generic keyword matches) ────
+        elif ui.startswith('n8n ') or ui == 'n8n':
+            self._handle_n8n(ui)
+
         # ── Greetings / small talk ─────────────────────────────────────────────
-        elif any(w in ui for w in ('hello', 'hi', 'hey', 'howdy')):
+        elif re.search(r'\b(hello|hi|hey|howdy)\b', ui):
             self._respond(random.choice(self.greet))
 
         elif 'how are you' in ui:
@@ -1564,13 +1659,13 @@ class NebulaWindow(QMainWindow):
     def _build_sidebar(self):
         outer = QFrame()
         outer.setObjectName('sidebar')
-        outer.setFixedWidth(160)
+        outer.setFixedWidth(220)
         outer_layout = QVBoxLayout(outer)
         outer_layout.setContentsMargins(0, 0, 0, 0)
         outer_layout.setSpacing(0)
 
         title_bar = QWidget()
-        title_bar.setStyleSheet('background-color: #0a0a0a;')
+        title_bar.setStyleSheet('background-color: #11111f;')
         title_bar.setFixedHeight(32)
         tb_layout = QHBoxLayout(title_bar)
         tb_layout.setContentsMargins(10, 0, 10, 0)
@@ -1588,10 +1683,10 @@ class NebulaWindow(QMainWindow):
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)
         scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
-        scroll.setStyleSheet('background-color: #080808; border: none;')
+        scroll.setStyleSheet('background-color: #11111f; border: none;')
 
         container = QWidget()
-        container.setStyleSheet('background-color: #080808;')
+        container.setStyleSheet('background-color: #11111f;')
         layout = QVBoxLayout(container)
         layout.setContentsMargins(8, 6, 8, 8)
         layout.setSpacing(2)
@@ -1698,7 +1793,7 @@ class NebulaWindow(QMainWindow):
         # Header
         header = QFrame()
         header.setFixedHeight(68)
-        header.setStyleSheet('background-color: #11111b;')
+        header.setStyleSheet('background-color: #11111f;')
         h_layout = QHBoxLayout(header)
         h_layout.setContentsMargins(8, 0, 12, 0)
 
@@ -1738,7 +1833,7 @@ class NebulaWindow(QMainWindow):
 
         accent = QFrame()
         accent.setFixedHeight(2)
-        accent.setStyleSheet('background-color: #a6e3a1;')
+        accent.setStyleSheet('background-color: #4ade80;')
         root.addWidget(accent)
 
         # Content row
@@ -1764,12 +1859,12 @@ class NebulaWindow(QMainWindow):
         self.status_label = QLabel('  Ready')
         self.status_label.setObjectName('status')
         self.status_label.setFixedHeight(22)
-        self.status_label.setStyleSheet('background-color: #11111b; color: #6c7086; font-size: 9pt;')
+        self.status_label.setStyleSheet('background-color: #11111f; color: #45475a; font-size: 8pt; font-family: Segoe UI;')
         root.addWidget(self.status_label)
 
         # Input row
         input_wrap = QWidget()
-        input_wrap.setStyleSheet('background-color: #1e1e2e;')
+        input_wrap.setStyleSheet('background-color: #11111f;')
         i_layout = QHBoxLayout(input_wrap)
         i_layout.setContentsMargins(10, 8, 10, 12)
         i_layout.setSpacing(8)
@@ -1790,10 +1885,10 @@ class NebulaWindow(QMainWindow):
         completer.setCaseSensitivity(Qt.CaseInsensitive)
         completer.setFilterMode(Qt.MatchContains)
         completer.popup().setStyleSheet(
-            'background-color: #2a2a40; color: #cdd6f4; '
-            'border: 1px solid #45475a; border-radius: 4px; '
-            'selection-background-color: #89b4fa; selection-color: #11111b; '
-            'font-size: 10pt; padding: 2px;'
+            'background-color: #1a1a2e; color: #cdd6f4; '
+            'border: 1px solid #313244; border-radius: 8px; '
+            'selection-background-color: #4ade80; selection-color: #0d0d17; '
+            'font-size: 10pt; padding: 4px; font-family: Segoe UI;'
         )
         self.input_field.setCompleter(completer)
         i_layout.addWidget(self.input_field)
