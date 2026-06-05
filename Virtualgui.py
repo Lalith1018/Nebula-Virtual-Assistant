@@ -20,13 +20,36 @@ from datetime import datetime
 import requests
 import wikipedia
 import pyttsx3
+import json as _json
+
+_CONFIG_FILE = os.path.join(os.environ.get('APPDATA', os.path.expanduser('~')), 'Nebula', 'config.json')
+
+def _load_saved_config():
+    if not os.path.exists(_CONFIG_FILE):
+        return
+    try:
+        for k, v in _json.load(open(_CONFIG_FILE)).items():
+            if v:
+                os.environ.setdefault(k, v)
+    except Exception:
+        pass
+
+def _save_config(data):
+    os.makedirs(os.path.dirname(_CONFIG_FILE), exist_ok=True)
+    with open(_CONFIG_FILE, 'w') as f:
+        _json.dump(data, f, indent=2)
+
+def _needs_setup():
+    return (not os.path.exists(_CONFIG_FILE) and
+            not any(os.getenv(k) for k in ('WEATHER_API_KEY', 'SPOTIFY_CLIENT_ID', 'ANTHROPIC_API_KEY')))
+
 try:
     from dotenv import load_dotenv
-    import sys as _sys
-    _base = getattr(_sys, '_MEIPASS', os.path.dirname(os.path.abspath(__file__)))
-    load_dotenv(os.path.join(_base, '.env'))
+    load_dotenv()
 except ImportError:
     pass
+
+_load_saved_config()
 import psutil
 import spotipy
 from spotipy.oauth2 import SpotifyOAuth
@@ -503,6 +526,85 @@ class AboutDialog(QDialog):
         narrate_btn.setCursor(Qt.PointingHandCursor)
         narrate_btn.clicked.connect(lambda: speak_fn(self.body))
         layout.addWidget(narrate_btn, alignment=Qt.AlignCenter)
+
+
+class SetupDialog(QDialog):
+    def __init__(self):
+        super().__init__()
+        self.setWindowTitle('Nebula — Setup')
+        self.setFixedSize(480, 460)
+        self.setStyleSheet(QSS)
+        self._build()
+
+    def _build(self):
+        root = QVBoxLayout(self)
+        root.setSpacing(10)
+        root.setContentsMargins(28, 22, 28, 22)
+
+        title = QLabel('NEBULA')
+        title.setObjectName('title')
+        title.setAlignment(Qt.AlignCenter)
+        root.addWidget(title)
+
+        sub = QLabel('Enter your free API keys once — Nebula remembers them forever.')
+        sub.setStyleSheet('color:#6c7086; font-size:9pt; font-family:Segoe UI;')
+        sub.setAlignment(Qt.AlignCenter)
+        sub.setWordWrap(True)
+        root.addWidget(sub)
+
+        div = QFrame(); div.setObjectName('sectionDiv')
+        root.addSpacing(6); root.addWidget(div); root.addSpacing(6)
+
+        self._fields = {}
+        specs = [
+            ('WEATHER_API_KEY',       '🌤  Weather API Key',       'openweathermap.org/api',            False),
+            ('SPOTIFY_CLIENT_ID',     '🎵  Spotify Client ID',     'developer.spotify.com/dashboard',  False),
+            ('SPOTIFY_CLIENT_SECRET', '🔑  Spotify Client Secret', 'developer.spotify.com/dashboard',  True),
+            ('ANTHROPIC_API_KEY',     '🤖  Anthropic API Key',     'console.anthropic.com',             True),
+        ]
+
+        for key, label, url, hide in specs:
+            lbl = QLabel(label)
+            lbl.setStyleSheet('color:#cdd6f4; font-size:9pt; font-weight:bold; font-family:Segoe UI;')
+            root.addWidget(lbl)
+
+            row = QHBoxLayout()
+            row.setSpacing(8)
+            field = QLineEdit()
+            field.setPlaceholderText('Paste your key here…')
+            field.setText(os.getenv(key, ''))
+            if hide:
+                field.setEchoMode(QLineEdit.Password)
+            row.addWidget(field)
+            self._fields[key] = field
+
+            link = QLabel(f'<a href="https://{url}" style="color:#89b4fa; font-size:8pt;">↗ Get key</a>')
+            link.setOpenExternalLinks(True)
+            link.setFixedWidth(58)
+            row.addWidget(link)
+            root.addLayout(row)
+
+        root.addSpacing(10)
+
+        save_btn = QPushButton('Save & Launch Nebula  ▶')
+        save_btn.setObjectName('sendBtn')
+        save_btn.setCursor(Qt.PointingHandCursor)
+        save_btn.setFixedHeight(42)
+        save_btn.clicked.connect(self._save)
+        root.addWidget(save_btn)
+
+        skip_lbl = QLabel('<a href="#" style="color:#45475a; font-size:8pt;">Launch without keys (some features won\'t work)</a>')
+        skip_lbl.setAlignment(Qt.AlignCenter)
+        skip_lbl.linkActivated.connect(lambda _: (_save_config({}), self.accept()))
+        root.addWidget(skip_lbl)
+
+    def _save(self):
+        data = {k: f.text().strip() for k, f in self._fields.items()}
+        _save_config(data)
+        for k, v in data.items():
+            if v:
+                os.environ[k] = v
+        self.accept()
 
 
 class NebulaWindow(QMainWindow):
@@ -1915,6 +2017,17 @@ class NebulaWindow(QMainWindow):
 def main():
     app = QApplication(sys.argv)
     app.setStyleSheet(QSS)
+
+    if _needs_setup():
+        SetupDialog().exec_()
+
+    # Reload globals so any keys entered in setup take effect
+    global WEATHER_API_KEY, SPOTIFY_CLIENT_ID, SPOTIFY_CLIENT_SECRET, ANTHROPIC_API_KEY
+    WEATHER_API_KEY       = os.getenv('WEATHER_API_KEY', '')
+    SPOTIFY_CLIENT_ID     = os.getenv('SPOTIFY_CLIENT_ID', '')
+    SPOTIFY_CLIENT_SECRET = os.getenv('SPOTIFY_CLIENT_SECRET', '')
+    ANTHROPIC_API_KEY     = os.getenv('ANTHROPIC_API_KEY', '')
+
     window = NebulaWindow()
     window.show()
     sys.exit(app.exec_())
